@@ -86,10 +86,10 @@ footer {
 <h1>Generatore di query INSERT per supplements</h1>
 
 <label>ID iniziale:</label>
-<input type="number" id="startId" value="5743">
+<input type="number" id="startId" placeholder="Inserisci ID iniziale">
 
 <label>Menu IDs (separati da spazio): </label>
-<input type="text" id="menuIds" value="380 381">
+<input type="text" id="menuIds" placeholder="Inserisci menu_id separati da spazio">
 
 <button onclick="generateSQL()">Genera file .txt</button>
 
@@ -109,11 +109,32 @@ const validFrom = '2025-09-01';
 const validTo = '2099-12-31';
 
 function generateSQL() {
-    const startId = parseInt(document.getElementById('startId').value);
+    const startIdInput = document.getElementById('startId').value.trim();
+    const menuIdsInput = document.getElementById('menuIds').value.trim();
 
-    // Split dei menu_id con spazio
-    const menuIds = document.getElementById('menuIds').value.split(' ').map(x => x.trim()).filter(x => x !== '');
-    
+    // Controllo input vuoti
+    if (!startIdInput || !menuIdsInput) {
+        alert("Per favore, inserisci sia l'ID iniziale che almeno un menu_id.");
+        return;
+    }
+
+    const startId = parseInt(startIdInput);
+    if (isNaN(startId) || startId < 1) {
+        alert("ID iniziale non valido. Inserisci un numero intero positivo.");
+        return;
+    }
+
+    // Split dei menu_id con spazio, rimuovendo eventuali spazi doppi o valori non numerici
+    let menuIds = menuIdsInput.split(' ')
+        .map(x => x.trim())
+        .filter(x => x !== '' && !isNaN(parseInt(x)))
+        .map(x => parseInt(x));
+
+    if (menuIds.length === 0) {
+        alert("Non sono stati inseriti menu_id validi.");
+        return;
+    }
+
     let currentId = startId;
     let queries = [];
 
