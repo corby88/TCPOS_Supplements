@@ -4,23 +4,102 @@
 <meta charset="UTF-8">
 <title>Generatore SQL INSERT</title>
 <style>
-body { font-family: Arial, sans-serif; margin: 40px; }
-label { display: block; margin-top: 10px; }
-textarea { width: 100%; height: 100px; margin-top: 5px; }
-button { margin-top: 20px; padding: 10px 20px; }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f0f4f8;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 800px;
+    margin: 50px auto;
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
+
+h1 {
+    text-align: center;
+    color: #333333;
+    margin-bottom: 30px;
+}
+
+label {
+    display: block;
+    margin-top: 20px;
+    font-weight: bold;
+    color: #555555;
+}
+
+input[type="number"],
+input[type="text"] {
+    width: 100%;
+    padding: 12px;
+    margin-top: 5px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+button {
+    margin-top: 30px;
+    padding: 15px 30px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    background-color: #4CAF50;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+textarea {
+    width: 100%;
+    height: 200px;
+    margin-top: 15px;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-family: monospace;
+    font-size: 14px;
+    resize: none;
+}
+
+footer {
+    text-align: center;
+    margin-top: 50px;
+    color: #777;
+    font-size: 14px;
+}
 </style>
 </head>
 <body>
 
+<div class="container">
 <h1>Generatore di query INSERT per supplements</h1>
 
 <label>ID iniziale:</label>
 <input type="number" id="startId" value="5743">
 
-<label>Menu IDs (separati da ; ): </label>
-<input type="text" id="menuIds" value="380;381">
+<label>Menu IDs (separati da spazio): </label>
+<input type="text" id="menuIds" value="380 381">
 
 <button onclick="generateSQL()">Genera file .txt</button>
+
+<label>Anteprima query:</label>
+<textarea id="preview" readonly></textarea>
+</div>
+
+<footer>
+Creata da Te – Generatore SQL per GitHub Pages
+</footer>
 
 <script>
 const articleIds = [24,26,236,237,238,239,240,241,242,243,244,245,92,101,102];
@@ -31,7 +110,10 @@ const validTo = '2099-12-31';
 
 function generateSQL() {
     const startId = parseInt(document.getElementById('startId').value);
-    const menuIds = document.getElementById('menuIds').value.split(';').map(x => x.trim()).filter(x=>x!=='');
+
+    // Split dei menu_id con spazio
+    const menuIds = document.getElementById('menuIds').value.split(' ').map(x => x.trim()).filter(x => x !== '');
+    
     let currentId = startId;
     let queries = [];
 
@@ -43,6 +125,10 @@ function generateSQL() {
         }
     });
 
+    // Mostra anteprima nel textarea
+    document.getElementById('preview').value = queries.join('\n');
+
+    // Scarica file
     const blob = new Blob([queries.join('\n')], {type: 'text/plain'});
     const link = document.createElement('a');
     link.download = 'inserts.sql';
