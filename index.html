@@ -18,4 +18,38 @@ button { margin-top: 20px; padding: 10px 20px; }
 <input type="number" id="startId" value="5743">
 
 <label>Menu IDs (separati da ; ): </label>
-<input type="text" id="menuIds" value="380;381
+<input type="text" id="menuIds" value="380;381">
+
+<button onclick="generateSQL()">Genera file .txt</button>
+
+<script>
+const articleIds = [24,26,236,237,238,239,240,241,242,243,244,245,92,101,102];
+const supplementIds = [300,301,302,303,304,305,306,307,308,309,310,311,353,354,355];
+const prices = [1.00,1.00,2.00,1.90,2.50,1.00,1.00,1.00,9.99,9.99,9.99,9.99,0.4,0.4,0.4];
+const validFrom = '2025-09-01';
+const validTo = '2099-12-31';
+
+function generateSQL() {
+    const startId = parseInt(document.getElementById('startId').value);
+    const menuIds = document.getElementById('menuIds').value.split(';').map(x => x.trim()).filter(x=>x!=='');
+    let currentId = startId;
+    let queries = [];
+
+    menuIds.forEach(menuId => {
+        for(let i=0; i<articleIds.length; i++){
+            let query = `insert into supplements values(${currentId},${menuId},${articleIds[i]},NULL,${supplementIds[i]},${prices[i].toFixed(2)},'${validFrom}','${validTo}');`;
+            queries.push(query);
+            currentId++;
+        }
+    });
+
+    const blob = new Blob([queries.join('\n')], {type: 'text/plain'});
+    const link = document.createElement('a');
+    link.download = 'inserts.sql';
+    link.href = URL.createObjectURL(blob);
+    link.click();
+}
+</script>
+
+</body>
+</html>
