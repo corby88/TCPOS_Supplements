@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Generatore SQL INSERT</title>
+
 <style>
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -22,7 +23,7 @@ body {
 
 h1 {
     text-align: center;
-    color: #333333;
+    color: #333;
     margin-bottom: 30px;
 }
 
@@ -30,7 +31,7 @@ label {
     display: block;
     margin-top: 20px;
     font-weight: bold;
-    color: #555555;
+    color: #555;
 }
 
 input[type="number"],
@@ -41,10 +42,28 @@ input[type="text"] {
     border-radius: 6px;
     border: 1px solid #ccc;
     font-size: 16px;
-    box-sizing: border-box;
 }
 
-button {
+.mode-buttons {
+    margin-top: 15px;
+}
+
+.mode-buttons button {
+    padding: 10px 20px;
+    margin-right: 10px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    background-color: #ddd;
+}
+
+.mode-buttons button.active {
+    background-color: #4CAF50;
+    color: white;
+}
+
+button.generate {
     margin-top: 30px;
     padding: 15px 30px;
     font-size: 16px;
@@ -53,11 +72,6 @@ button {
     background-color: #4CAF50;
     color: white;
     cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-button:hover {
-    background-color: #45a049;
 }
 
 textarea {
@@ -71,86 +85,90 @@ textarea {
     font-size: 14px;
     resize: none;
 }
-
-footer {
-    text-align: center;
-    margin-top: 50px;
-    color: #777;
-    font-size: 14px;
-}
 </style>
 </head>
+
 <body>
 
 <div class="container">
 <h1>Generatore di query INSERT per supplements</h1>
 
+<label>Modalità:</label>
+<div class="mode-buttons">
+    <button id="btnMM" class="active" onclick="setMode('MM')">MM</button>
+    <button id="btnML" onclick="setMode('ML')">ML</button>
+</div>
+
 <label>ID iniziale:</label>
 <input type="number" id="startId" placeholder="Inserisci ID iniziale">
 
-<label>Menu IDs (separati da spazio): </label>
-<input type="text" id="menuIds" placeholder="Inserisci menu_id separati da spazio">
+<label>Menu IDs (separati da spazio):</label>
+<input type="text" id="menuIds" placeholder="Es: 1 2 3 4">
 
-<button onclick="generateSQL()">Genera file .txt</button>
+<button class="generate" onclick="generateSQL()">Genera file .txt</button>
 
 <label>Anteprima query:</label>
 <textarea id="preview" readonly></textarea>
 </div>
 
-<footer>
-Creata da Te – Generatore SQL per GitHub Pages
-</footer>
-
 <script>
-const articleIds = [236,237,238,239,240,241,242,243,244,245,178,177,24,26,92,102,101];
-const supplementIds = [302,303,304,305,306,307,308,309,310,311,202,201,300,301,353,355,354];
-const prices = [1.50,1.90,2.50,1.00,1.00,1.00,9.99,9.99,9.99,9.99,0.50,0.80,1.00,1.00,0.50,0.50,0.50];
-const validFrom = '2025-09-01';
-const validTo = '2099-12-31';
+let mode = 'MM';
+
+const CONFIG = {
+    MM: {
+        articleIds: [236,237,238,239,240,241,242,243,244,245,178,177,24,26,92,102,101],
+        supplementIds: [302,303,304,305,306,307,308,309,310,311,202,201,300,301,353,355,354],
+        prices: [1.50,1.90,2.50,1.00,1.00,1.00,9.99,9.99,9.99,9.99,0.50,0.80,1.00,1.00,0.50,0.50,0.50],
+        validFrom: '2025-09-01',
+        validTo: '2099-12-31'
+    },
+    ML: {
+        articleIds: [236,237,238,239,240,241,242,243,244,245,178,177,24,26,92,102,101],
+        supplementIds: [302,303,304,305,306,307,308,309,310,311,202,201,300,301,353,355,354],
+        prices: [1.50,1.90,2.50,1.00,1.00,1.00,9.99,9.99,9.99,9.99,0.50,0.80,1.00,1.00,0.50,0.50,0.50],
+        validFrom: '2025-09-01',
+        validTo: '2099-12-31'
+    }
+};
+
+function setMode(selectedMode) {
+    mode = selectedMode;
+    document.getElementById('btnMM').classList.toggle('active', mode === 'MM');
+    document.getElementById('btnML').classList.toggle('active', mode === 'ML');
+}
 
 function generateSQL() {
+
+    const { articleIds, supplementIds, prices, validFrom, validTo } = CONFIG[mode];
+
     const startIdInput = document.getElementById('startId').value.trim();
     const menuIdsInput = document.getElementById('menuIds').value.trim();
 
-    // Controllo input vuoti
     if (!startIdInput || !menuIdsInput) {
-        alert("Per favore, inserisci sia l'ID iniziale che almeno un menu_id.");
+        alert("Inserisci ID iniziale e menu_id.");
         return;
     }
 
     const startId = parseInt(startIdInput);
-    if (isNaN(startId) || startId < 1) {
-        alert("ID iniziale non valido. Inserisci un numero intero positivo.");
-        return;
-    }
-
-    // Split dei menu_id con spazio, rimuovendo eventuali spazi doppi o valori non numerici
     let menuIds = menuIdsInput.split(' ')
-        .map(x => x.trim())
-        .filter(x => x !== '' && !isNaN(parseInt(x)))
-        .map(x => parseInt(x));
-
-    if (menuIds.length === 0) {
-        alert("Non sono stati inseriti menu_id validi.");
-        return;
-    }
+        .map(x => parseInt(x))
+        .filter(x => !isNaN(x));
 
     let currentId = startId;
     let queries = [];
 
     menuIds.forEach(menuId => {
-        for(let i=0; i<articleIds.length; i++){
-            let query = `insert into supplements values(${currentId},${menuId},${articleIds[i]},NULL,${supplementIds[i]},${prices[i].toFixed(2)},'${validFrom}','${validTo}');`;
-            queries.push(query);
+        for (let i = 0; i < articleIds.length; i++) {
+            queries.push(
+                `insert into supplements values(${currentId},${menuId},${articleIds[i]},NULL,${supplementIds[i]},${prices[i].toFixed(2)},'${validFrom}','${validTo}');`
+            );
             currentId++;
         }
     });
 
-    // Mostra anteprima nel textarea
     document.getElementById('preview').value = queries.join('\n');
 
-    // Scarica file
-    const blob = new Blob([queries.join('\n')], {type: 'text/plain'});
+    const blob = new Blob([queries.join('\n')], { type: 'text/plain' });
     const link = document.createElement('a');
     link.download = 'inserts.sql';
     link.href = URL.createObjectURL(blob);
