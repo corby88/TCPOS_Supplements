@@ -13,7 +13,7 @@ body {
 }
 
 .container {
-    max-width: 800px;
+    max-width: 900px;
     margin: 50px auto;
     background: #ffffff;
     padding: 30px;
@@ -34,14 +34,19 @@ label {
     color: #555;
 }
 
-input[type="number"],
-input[type="text"] {
+input, textarea {
     width: 100%;
     padding: 12px;
     margin-top: 5px;
     border-radius: 6px;
     border: 1px solid #ccc;
-    font-size: 16px;
+    font-size: 15px;
+}
+
+textarea {
+    height: 80px;
+    font-family: monospace;
+    resize: vertical;
 }
 
 .mode-buttons {
@@ -74,16 +79,8 @@ button.generate {
     cursor: pointer;
 }
 
-textarea {
-    width: 100%;
+#preview {
     height: 200px;
-    margin-top: 15px;
-    padding: 12px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    font-family: monospace;
-    font-size: 14px;
-    resize: none;
 }
 </style>
 </head>
@@ -105,6 +102,15 @@ textarea {
 <label>Menu IDs (separati da spazio):</label>
 <input type="text" id="menuIds" placeholder="Es: 1 2 3 4">
 
+<label>Article IDs (separati da spazio):</label>
+<textarea id="articleIdsInput" placeholder="Es: 236 237 238 239"></textarea>
+
+<label>Supplement IDs (separati da spazio):</label>
+<textarea id="supplementIdsInput" placeholder="Es: 302 303 304 305"></textarea>
+
+<label>Prices (separati da spazio, formato 1.50):</label>
+<textarea id="pricesInput" placeholder="Es: 1.50 1.90 2.50 1.00"></textarea>
+
 <button class="generate" onclick="generateSQL()">Genera file .txt</button>
 
 <label>Anteprima query:</label>
@@ -116,16 +122,16 @@ let mode = 'MM';
 
 const CONFIG = {
     MM: {
-        articleIds: [236,237,238,239,240,241,242,243,244,245,178,177,24,26,92,102,101,383],
-        supplementIds: [302,303,304,305,306,307,308,309,310,311,202,201,300,301,353,355,354,357,356],
-        prices: [1.50,1.90,2.50,1.00,1.00,1.00,9.99,9.99,9.99,9.99,0.50,0.80,1.00,1.00,0.50,0.50,0.50,0.70],
+        articleIds: [236,237,238],
+        supplementIds: [302,303,304],
+        prices: [1.50,1.90,2.50],
         validFrom: '2025-09-01',
         validTo: '2099-12-31'
     },
     ML: {
-        articleIds: [24,26,236,237,238,239,240,241,242,243,244,245,178,177,92,101,102,383],
-        supplementIds: [300,301,302,303,304,305,306,307,308,309,310,311,220,221,353,354,355,357],
-        prices: [1.00,1.00,1.50,1.90,2.50,1.00,1.00,1.00,9.99,9.99,9.99,9.99,0.30,0.50,0.40,0.40,0.40,0.50],
+        articleIds: [24,26,236],
+        supplementIds: [300,301,302],
+        prices: [1.00,1.00,1.50],
         validFrom: '2025-09-01',
         validTo: '2099-12-31'
     }
@@ -137,9 +143,14 @@ function setMode(selectedMode) {
     document.getElementById('btnML').classList.toggle('active', mode === 'ML');
 }
 
-function generateSQL() {
+function parseInput(input, isFloat = false) {
+    return input
+        .split(' ')
+        .map(x => isFloat ? parseFloat(x) : parseInt(x))
+        .filter(x => !isNaN(x));
+}
 
-    const { articleIds, supplementIds, prices, validFrom, validTo } = CONFIG[mode];
+function generateSQL() {
 
     const startIdInput = document.getElementById('startId').value.trim();
     const menuIdsInput = document.getElementById('menuIds').value.trim();
@@ -149,10 +160,24 @@ function generateSQL() {
         return;
     }
 
+    let articleIds = parseInput(document.getElementById('articleIdsInput').value);
+    let supplementIds = parseInput(document.getElementById('supplementIdsInput').value);
+    let prices = parseInput(document.getElementById('pricesInput').value, true);
+
+    const { validFrom, validTo } = CONFIG[mode];
+
+    // Se vuoti usa default
+    if (articleIds.length === 0) articleIds = CONFIG[mode].articleIds;
+    if (supplementIds.length === 0) supplementIds = CONFIG[mode].supplementIds;
+    if (prices.length === 0) prices = CONFIG[mode].prices;
+
+    if (articleIds.length !== supplementIds.length || articleIds.length !== prices.length) {
+        alert("ArticleIds, SupplementIds e Prices devono avere la stessa lunghezza.");
+        return;
+    }
+
     const startId = parseInt(startIdInput);
-    let menuIds = menuIdsInput.split(' ')
-        .map(x => parseInt(x))
-        .filter(x => !isNaN(x));
+    let menuIds = parseInput(menuIdsInput);
 
     let currentId = startId;
     let queries = [];
@@ -166,9 +191,10 @@ function generateSQL() {
         }
     });
 
-    document.getElementById('preview').value = queries.join('\n');
+    const output = queries.join('\n');
+    document.getElementById('preview').value = output;
 
-    const blob = new Blob([queries.join('\n')], { type: 'text/plain' });
+    const blob = new Blob([output], { type: 'text/plain' });
     const link = document.createElement('a');
     link.download = 'inserts.sql';
     link.href = URL.createObjectURL(blob);
